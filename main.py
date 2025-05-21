@@ -88,7 +88,7 @@ def save_as_csv(soup, CommodityHead):
 def main():
     driver = webdriver.Chrome(executable_path='chromedriver_win32/chromedriver')
     # read Commodity data from csv file
-    df = pd.read_csv("CommodityAndCommodityHeadsv2.csv")
+    df = pd.read_csv("./data/CommodityAndCommodityHeadsv2.csv")
     for row in df.itertuples(index=False):
         url = get_url(row.Commodity, row.CommodityHead)
         # driver.get('https://bit.ly/3h0JRse')
