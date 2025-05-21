@@ -4,9 +4,12 @@ from bs4 import BeautifulSoup as bs
 import pandas as pd
 from datetime import date, timedelta
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from time import sleep
 from urllib.parse import urlencode
-
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 def get_url(Commodity, CommodityHead):
     """Given a Commodity and a CommodityHead, returns the complete URL to be browsed"""
@@ -86,7 +89,9 @@ def save_as_csv(soup, CommodityHead):
 
 
 def main():
-    driver = webdriver.Chrome(executable_path='chromedriver_win32/chromedriver')
+    # service = Service(executable_path='chromedriver_win32/chromedriver')
+    # driver = webdriver.Chrome(service=service)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
     # read Commodity data from csv file
     df = pd.read_csv("./data/CommodityAndCommodityHeadsv2.csv")
     for row in df.itertuples(index=False):
