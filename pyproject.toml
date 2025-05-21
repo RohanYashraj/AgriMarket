@@ -1,0 +1,12 @@
+[project]
+name = "agrimarket"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.13.4",
+    "pandas>=2.2.3",
+    "requests>=2.32.3",
+    "selenium>=4.32.0",
+]
