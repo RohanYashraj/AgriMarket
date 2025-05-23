@@ -1,12 +1,13 @@
 [project]
 name = "agrimarket"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Python script for scraping agricultural commodity market data from Agmarknet and saving it to CSV files."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4>=4.13.4",
     "pandas>=2.2.3",
+    "pytest>=8.3.5",
     "requests>=2.32.3",
     "selenium>=4.32.0",
     "webdriver-manager>=4.0.2",
