@@ -1,6 +1,8 @@
-import os
 import time
+import os
 from urllib.parse import urlencode
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Tuple
 
 import pandas as pd
 import requests
@@ -69,8 +71,8 @@ def save_as_csv(soup, CommodityHead, date_from, date_to):
         # save table as csv file
         try:
             # Format dates for filename (e.g., 01-Jan-2020 to 01Jan2020)
-            date_from_formatted = date_from.replace("-", "")
-            date_to_formatted = date_to.replace("-", "")
+            date_from_formatted = date_from.replace('-', '')
+            date_to_formatted = date_to.replace('-', '')
 
             # Create the base directory for scraped data
             base_dir = "./data/scraped_data"
@@ -81,10 +83,7 @@ def save_as_csv(soup, CommodityHead, date_from, date_to):
             os.makedirs(commodity_dir, exist_ok=True)
 
             # Construct the full filename within the commodity subdirectory
-            filename = os.path.join(
-                commodity_dir,
-                f"Agri_Data_{CommodityHead}_{date_from_formatted}_{date_to_formatted}.csv",
-            )
+            filename = os.path.join(commodity_dir, f"Agri_Data_{CommodityHead}_{date_from_formatted}_{date_to_formatted}.csv")
 
             with open(filename, mode="ab") as f:
                 pd.DataFrame(rows, columns=headers).to_csv(
@@ -96,9 +95,28 @@ def save_as_csv(soup, CommodityHead, date_from, date_to):
     return
 
 
-def get_soup(driver):
-    """Returns a BeautifulSoup object from the current page source."""
-    return bs(driver.page_source, "html.parser")
+def process_commodity(commodity_row: pd.Series, date_from: str, date_to: str) -> Tuple[str, bool, str]:
+    """Process a single commodity for a given date range.
+    
+    Args:
+        commodity_row: A pandas Series containing commodity information
+        date_from: Start date for data collection
+        date_to: End date for data collection
+        
+    Returns:
+        Tuple containing (commodity_head, success_status, error_message)
+    """
+    try:
+        url = get_url(commodity_row.Commodity, commodity_row.CommodityHead, date_from, date_to)
+        response = requests.get(url)
+        response.raise_for_status()
+        soup = bs(response.content, "html.parser")
+        save_as_csv(soup, commodity_row.CommodityHead, date_from, date_to)
+        return commodity_row.CommodityHead, True, ""
+    except requests.exceptions.RequestException as e:
+        return commodity_row.CommodityHead, False, str(e)
+    except Exception as e:
+        return commodity_row.CommodityHead, False, str(e)
 
 
 def main():
@@ -114,33 +132,29 @@ def main():
     # read Dates data from csv file
     df_dates = pd.read_csv("./data/Dates.csv")
 
+    # Number of worker threads (adjust based on your system and network capabilities)
+    max_workers = min(32, (os.cpu_count() or 1) * 4)
+
     for date_row in df_dates.itertuples(index=False):
         date_from = date_row.From
         date_to = date_row.To
         print(f"--- Fetching data for date range: {date_from} to {date_to} ---")
 
-        for commodity_row in df_commodities.itertuples(index=False):
-            url = get_url(
-                commodity_row.Commodity, commodity_row.CommodityHead, date_from, date_to
-            )
-            # print(f"Fetching data for {row.CommodityHead} from {url}")
-            try:
-                response = requests.get(url)
-                response.raise_for_status()  # Raise an exception for bad status codes
-                soup = bs(response.content, "html.parser")
-                save_as_csv(soup, commodity_row.CommodityHead, date_from, date_to)
-                print(
-                    f"Successfully saved data for {commodity_row.CommodityHead} for {date_from} to {date_to}."
-                )
+        # Create a ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all commodity processing tasks
+            future_to_commodity = {
+                executor.submit(process_commodity, commodity_row, date_from, date_to): commodity_row
+                for commodity_row in df_commodities.itertuples(index=False)
+            }
 
-            except requests.exceptions.RequestException as e:
-                print(
-                    f"Error fetching data for {commodity_row.CommodityHead} for {date_from} to {date_to}: {e}"
-                )
-            except Exception as e:
-                print(
-                    f"An error occurred while processing {commodity_row.CommodityHead} for {date_from} to {date_to}: {e}"
-                )
+            # Process completed tasks as they finish
+            for future in as_completed(future_to_commodity):
+                commodity_head, success, error = future.result()
+                if success:
+                    print(f"Successfully saved data for {commodity_head} for {date_from} to {date_to}.")
+                else:
+                    print(f"Error processing {commodity_head} for {date_from} to {date_to}: {error}")
 
     end_time = time.time()
     print(f"Total time taken: {end_time - start_time:.2f} seconds")
