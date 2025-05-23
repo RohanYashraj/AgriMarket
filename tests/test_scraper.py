@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from bs4 import BeautifulSoup as bs
-from main import (
+from agrimarket.scraper import (
     get_all_tables,
     get_table_headers,
     get_table_rows,
