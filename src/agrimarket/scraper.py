@@ -96,7 +96,7 @@ def main():
     df = pd.read_csv("./data/CommodityAndCommodityHeadsv2.csv")
     for row in df.itertuples(index=False):
         url = get_url(row.Commodity, row.CommodityHead)
-        print(f"Fetching data for {row.CommodityHead} from {url}")
+        # print(f"Fetching data for {row.CommodityHead} from {url}")
         try:
             response = requests.get(url)
             response.raise_for_status()  # Raise an exception for bad status codes
