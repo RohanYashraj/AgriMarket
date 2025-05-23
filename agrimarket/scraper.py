@@ -2,11 +2,19 @@ import time
 import os
 from urllib.parse import urlencode
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Tuple
+from typing import List, Tuple, Dict
+from dataclasses import dataclass
 
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup as bs
+
+
+@dataclass
+class DateRange:
+    """Class to hold date range information"""
+    from_date: str
+    to_date: str
 
 
 def get_url(Commodity, CommodityHead, date_from, date_to):
@@ -95,28 +103,60 @@ def save_as_csv(soup, CommodityHead, date_from, date_to):
     return
 
 
-def process_commodity(commodity_row: pd.Series, date_from: str, date_to: str) -> Tuple[str, bool, str]:
+def process_commodity(commodity_row: pd.Series, date_range: DateRange) -> Tuple[str, bool, str]:
     """Process a single commodity for a given date range.
     
     Args:
         commodity_row: A pandas Series containing commodity information
-        date_from: Start date for data collection
-        date_to: End date for data collection
+        date_range: DateRange object containing from_date and to_date
         
     Returns:
         Tuple containing (commodity_head, success_status, error_message)
     """
     try:
-        url = get_url(commodity_row.Commodity, commodity_row.CommodityHead, date_from, date_to)
+        url = get_url(commodity_row.Commodity, commodity_row.CommodityHead, date_range.from_date, date_range.to_date)
         response = requests.get(url)
         response.raise_for_status()
         soup = bs(response.content, "html.parser")
-        save_as_csv(soup, commodity_row.CommodityHead, date_from, date_to)
+        save_as_csv(soup, commodity_row.CommodityHead, date_range.from_date, date_range.to_date)
         return commodity_row.CommodityHead, True, ""
     except requests.exceptions.RequestException as e:
         return commodity_row.CommodityHead, False, str(e)
     except Exception as e:
         return commodity_row.CommodityHead, False, str(e)
+
+
+def process_date_range(date_range: DateRange, df_commodities: pd.DataFrame, max_workers: int) -> Dict[str, List[Tuple[str, bool, str]]]:
+    """Process all commodities for a given date range.
+    
+    Args:
+        date_range: DateRange object containing from_date and to_date
+        df_commodities: DataFrame containing commodity information
+        max_workers: Maximum number of worker threads
+        
+    Returns:
+        Dictionary containing results for each commodity
+    """
+    print(f"--- Fetching data for date range: {date_range.from_date} to {date_range.to_date} ---")
+    results = {}
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all commodity processing tasks
+        future_to_commodity = {
+            executor.submit(process_commodity, commodity_row, date_range): commodity_row
+            for commodity_row in df_commodities.itertuples(index=False)
+        }
+
+        # Process completed tasks as they finish
+        for future in as_completed(future_to_commodity):
+            commodity_head, success, error = future.result()
+            if success:
+                print(f"Successfully saved data for {commodity_head} for {date_range.from_date} to {date_range.to_date}.")
+            else:
+                print(f"Error processing {commodity_head} for {date_range.from_date} to {date_range.to_date}: {error}")
+            results[commodity_head] = (success, error)
+
+    return results
 
 
 def main():
@@ -132,29 +172,30 @@ def main():
     # read Dates data from csv file
     df_dates = pd.read_csv("./data/Dates.csv")
 
-    # Number of worker threads (adjust based on your system and network capabilities)
-    max_workers = min(32, (os.cpu_count() or 1) * 4)
+    # Convert dates to DateRange objects
+    date_ranges = [DateRange(row.From, row.To) for row in df_dates.itertuples(index=False)]
 
-    for date_row in df_dates.itertuples(index=False):
-        date_from = date_row.From
-        date_to = date_row.To
-        print(f"--- Fetching data for date range: {date_from} to {date_to} ---")
+    # Number of worker threads for commodity processing
+    commodity_workers = min(32, (os.cpu_count() or 1) * 4)
+    # Number of worker threads for date range processing (use fewer threads to avoid overwhelming the server)
+    date_workers = min(4, os.cpu_count() or 1)
 
-        # Create a ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all commodity processing tasks
-            future_to_commodity = {
-                executor.submit(process_commodity, commodity_row, date_from, date_to): commodity_row
-                for commodity_row in df_commodities.itertuples(index=False)
-            }
+    # Process date ranges in parallel
+    with ThreadPoolExecutor(max_workers=date_workers) as date_executor:
+        # Submit all date range processing tasks
+        future_to_date = {
+            date_executor.submit(process_date_range, date_range, df_commodities, commodity_workers): date_range
+            for date_range in date_ranges
+        }
 
-            # Process completed tasks as they finish
-            for future in as_completed(future_to_commodity):
-                commodity_head, success, error = future.result()
-                if success:
-                    print(f"Successfully saved data for {commodity_head} for {date_from} to {date_to}.")
-                else:
-                    print(f"Error processing {commodity_head} for {date_from} to {date_to}: {error}")
+        # Process completed date ranges as they finish
+        for future in as_completed(future_to_date):
+            date_range = future_to_date[future]
+            try:
+                results = future.result()
+                print(f"Completed processing date range: {date_range.from_date} to {date_range.to_date}")
+            except Exception as e:
+                print(f"Error processing date range {date_range.from_date} to {date_range.to_date}: {e}")
 
     end_time = time.time()
     print(f"Total time taken: {end_time - start_time:.2f} seconds")
