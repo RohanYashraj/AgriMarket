@@ -1,5 +1,5 @@
-import time
 import os
+import time
 from urllib.parse import urlencode
 
 import pandas as pd
@@ -76,8 +76,8 @@ def save_as_csv(soup, CommodityHead, date_from, date_to):
         # save table as csv file
         try:
             # Format dates for filename (e.g., 01-Jan-2020 to 01Jan2020)
-            date_from_formatted = date_from.replace('-', '')
-            date_to_formatted = date_to.replace('-', '')
+            date_from_formatted = date_from.replace("-", "")
+            date_to_formatted = date_to.replace("-", "")
 
             # Create the base directory for scraped data
             base_dir = "./data/scraped_data"
@@ -88,7 +88,10 @@ def save_as_csv(soup, CommodityHead, date_from, date_to):
             os.makedirs(commodity_dir, exist_ok=True)
 
             # Construct the full filename within the commodity subdirectory
-            filename = os.path.join(commodity_dir, f"Agri_Data_{CommodityHead}_{date_from_formatted}_{date_to_formatted}.csv")
+            filename = os.path.join(
+                commodity_dir,
+                f"Agri_Data_{CommodityHead}_{date_from_formatted}_{date_to_formatted}.csv",
+            )
 
             with open(filename, mode="ab") as f:
                 pd.DataFrame(rows, columns=headers).to_csv(
@@ -124,19 +127,27 @@ def main():
         print(f"--- Fetching data for date range: {date_from} to {date_to} ---")
 
         for commodity_row in df_commodities.itertuples(index=False):
-            url = get_url(commodity_row.Commodity, commodity_row.CommodityHead, date_from, date_to)
+            url = get_url(
+                commodity_row.Commodity, commodity_row.CommodityHead, date_from, date_to
+            )
             # print(f"Fetching data for {row.CommodityHead} from {url}")
             try:
                 response = requests.get(url)
                 response.raise_for_status()  # Raise an exception for bad status codes
                 soup = bs(response.content, "html.parser")
                 save_as_csv(soup, commodity_row.CommodityHead, date_from, date_to)
-                print(f"Successfully saved data for {commodity_row.CommodityHead} for {date_from} to {date_to}.")
+                print(
+                    f"Successfully saved data for {commodity_row.CommodityHead} for {date_from} to {date_to}."
+                )
 
             except requests.exceptions.RequestException as e:
-                print(f"Error fetching data for {commodity_row.CommodityHead} for {date_from} to {date_to}: {e}")
+                print(
+                    f"Error fetching data for {commodity_row.CommodityHead} for {date_from} to {date_to}: {e}"
+                )
             except Exception as e:
-                print(f"An error occurred while processing {commodity_row.CommodityHead} for {date_from} to {date_to}: {e}")
+                print(
+                    f"An error occurred while processing {commodity_row.CommodityHead} for {date_from} to {date_to}: {e}"
+                )
 
     end_time = time.time()
     print(f"Total time taken: {end_time - start_time:.2f} seconds")
@@ -169,7 +180,9 @@ def main_with_selenium():
         print(f"--- Fetching data for date range: {date_from} to {date_to} ---")
 
         for commodity_row in df_commodities.itertuples(index=False):
-            url = get_url(commodity_row.Commodity, commodity_row.CommodityHead, date_from, date_to)
+            url = get_url(
+                commodity_row.Commodity, commodity_row.CommodityHead, date_from, date_to
+            )
             driver.get(url)
             # driver.maximize_window()
             # sleep(10)
@@ -184,21 +197,29 @@ def main_with_selenium():
 
                 while True:
                     try:
-                        driver.find_element(By.XPATH, "//input[contains(@alt, '>')]").click()
+                        driver.find_element(
+                            By.XPATH, "//input[contains(@alt, '>')]"
+                        ).click()
                         # sleep(5)
                         WebDriverWait(driver, 20).until(
                             EC.presence_of_element_located((By.TAG_NAME, "table"))
                         )
                         soup = get_soup(driver)
-                        save_as_csv(soup, commodity_row.CommodityHead, date_from, date_to)
+                        save_as_csv(
+                            soup, commodity_row.CommodityHead, date_from, date_to
+                        )
 
                     except:
                         print("No more pages left for this commodity and date range.")
                         break
                 # sleep(5)
-                print(f"Successfully saved data for {commodity_row.CommodityHead} for {date_from} to {date_to}.")
+                print(
+                    f"Successfully saved data for {commodity_row.CommodityHead} for {date_from} to {date_to}."
+                )
             except Exception as e:
-                print(f"An error occurred while processing {commodity_row.CommodityHead} for {date_from} to {date_to}: {e}")
+                print(
+                    f"An error occurred while processing {commodity_row.CommodityHead} for {date_from} to {date_to}: {e}"
+                )
 
     # Close the driver after processing all commodities
     driver.quit()
