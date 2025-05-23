@@ -9,16 +9,12 @@ agrimarket/
 ├── agrimarket/
 │   ├── __init__.py
 │   └── scraper.py
-├── tests/
-│   └── test_scraper.py
 ├── data/
 │   ├── Commodity.csv
 │   ├── Dates.csv
-│   └── scraped_data/
-│       └── (commodity subfolders)
-│           └── (scraped data files)
-├── config/
+│   └── CommodityAndCommodityHeads.csv
 ├── pyproject.toml
+├── uv.lock
 └── README.md
 ```
 
@@ -138,3 +134,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
   > I would advise you to play with the script only to learn and not to wreck govt servers as thousands of people rely on this data everyday
 
 Happy Learning! :metal:
+
+**Author:** Rohan Yashraj Gupta
