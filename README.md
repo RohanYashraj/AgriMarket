@@ -12,7 +12,9 @@ agrimarket/
 ├── data/
 │   ├── Commodity.csv
 │   ├── Dates.csv
-│   └── CommodityAndCommodityHeads.csv
+│   └── scraped_data/
+│       └── (commodity subfolders)
+│           └── (scraped data files)
 ├── pyproject.toml
 ├── uv.lock
 └── README.md
@@ -68,12 +70,27 @@ from agrimarket.scraper import main
 # This will:
 # - Read commodity data from data/Commodity.csv
 # - Read date ranges from data/Dates.csv
-# - Fetch data for each commodity and date range
+# - Fetch data for each commodity and date range in parallel
 # - Save results to CSV files in the data/scraped_data directory
 main()
 ```
 
 The script will create CSV files in the `data/scraped_data` directory, organized in subfolders named after each commodity's `CommodityHead`. The filenames will be in the format `Agri_Data_{CommodityHead}_{date_from_formatted}_{date_to_formatted}.csv`.
+
+### Parallelization
+
+The scraper implements two-level parallelization for improved performance:
+
+1. **Date Range Level**: Multiple date ranges are processed simultaneously
+
+   - Uses a thread pool with up to 4 workers (or number of CPU cores, whichever is less)
+   - Each date range is processed independently
+
+2. **Commodity Level**: Within each date range, multiple commodities are processed in parallel
+   - Uses a thread pool with up to 32 workers (or 4x CPU cores, whichever is less)
+   - Each commodity is processed independently
+
+This parallelization strategy ensures efficient resource utilization while being respectful to the server's capacity.
 
 ## Development
 
@@ -110,23 +127,32 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ### **2. How?**
 
-- The script now uses `requests` to fetch the HTML content of the pages and `BeautifulSoup` to parse the HTML and extract the table data. Initially, Selenium was used, but since all the data for a given commodity and date range is on a single page, using `requests` is significantly more efficient.
+- The script uses `requests` to fetch the HTML content of the pages and `BeautifulSoup` to parse the HTML and extract the table data.
+- Implements two-level parallelization for efficient data collection:
+  - Date ranges are processed in parallel
+  - Commodities within each date range are processed in parallel
+- Data is organized in commodity-specific subfolders for better organization
 
 ### **3. Challenges, Drawbacks and Concerns!**
 
 - Being a govt. site, the servers might not be powerful enough to handle a very large number of rapid requests for extensive historical data.
 - The Dataset could still be very large depending on the time period selected, potentially leading to large CSV files.
-- Theoretically, fetching data for multiple or all commodities together could be scaled using techniques like multithreading or distributed computing, but caution is advised regarding the load on the source server.
+- The parallelization is carefully tuned to balance performance with server load:
+  - Date range parallelization is limited to prevent overwhelming the server
+  - Commodity parallelization is more aggressive but still within reasonable limits
 
 ### **4. Why?**
 
 - The purpose of this project was to brush up web-scraping concepts using libraries like `requests` and `BeautifulSoup`.
+- Implement efficient parallelization techniques for better performance.
+- Organize data in a structured way for easier analysis.
 
 ### **5. How to use this project?**
 
-- You can learn about web-scraping concepts using `requests` and `BeautifulSoup` by examining the code, which includes comments and documentation for the key methods.
-- You can also use this script to download a reasonable amount of data and use it for your Time-Series Forecasting or Analytics & Visualization projects.
-- To run the script, make sure you have the required dependencies installed (see `pyproject.toml`) and execute `main.py`.
+- You can learn about web-scraping concepts using `requests` and `BeautifulSoup` by examining the code.
+- Study the parallelization implementation using `concurrent.futures.ThreadPoolExecutor`.
+- Use the scraped data for Time-Series Forecasting or Analytics & Visualization projects.
+- To run the script, make sure you have the required dependencies installed (see `pyproject.toml`).
 
 ### **6. Things to Note:**
 
