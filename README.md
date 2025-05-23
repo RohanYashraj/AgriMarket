@@ -23,7 +23,7 @@ agrimarket/
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/agrimarket.git
+git clone https://github.com/rohanyashraj/agrimarket.git
 cd agrimarket
 ```
 
