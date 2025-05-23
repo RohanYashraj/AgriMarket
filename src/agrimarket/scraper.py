@@ -1,15 +1,16 @@
-from bs4 import BeautifulSoup as bs
-import pandas as pd
-import requests
 import time
 from urllib.parse import urlencode
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
+
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup as bs
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 def get_url(Commodity, CommodityHead):

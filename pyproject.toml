@@ -1,14 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "agrimarket"
 version = "0.1.0"
-description = "A Python script for scraping agricultural commodity market data from Agmarknet and saving it to CSV files."
+description = "A web scraping tool for agricultural market data"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.8"
 dependencies = [
-    "beautifulsoup4>=4.13.4",
-    "pandas>=2.2.3",
-    "pytest>=8.3.5",
-    "requests>=2.32.3",
-    "selenium>=4.32.0",
-    "webdriver-manager>=4.0.2",
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "pandas>=2.0.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.3.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=src/agrimarket"
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+lint.select = ["E", "F", "I", "N", "W"]
+lint.ignore = []

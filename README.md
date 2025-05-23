@@ -1,5 +1,98 @@
 # AgriMarket
 
+A Python package for scraping agricultural commodity market data from Agmarknet and saving it to CSV files.
+
+## Project Structure
+
+```
+agrimarket/
+├── src/
+│   └── agrimarket/
+│       ├── __init__.py
+│       └── scraper.py
+├── tests/
+│   └── test_scraper.py
+├── data/
+│   └── (scraped data files)
+├── config/
+├── pyproject.toml
+└── README.md
+```
+
+## Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/agrimarket.git
+cd agrimarket
+```
+
+2. Install UV (if not already installed):
+
+```bash
+pip install uv
+```
+
+3. Create and activate a virtual environment using UV:
+
+```bash
+# Create virtual environment
+uv venv
+
+# Activate virtual environment
+# On Windows:
+.venv\Scripts\activate
+# On Unix/MacOS:
+source .venv/bin/activate
+```
+
+4. Install the package in development mode:
+
+```bash
+uv pip install -e ".[dev]"
+```
+
+## Usage
+
+The package provides functionality to scrape agricultural commodity data from Agmarknet. Here's how to use it:
+
+1. Ensure you have a CSV file named `CommodityAndCommodityHeadsv2.csv` in the `data` directory with columns for `Commodity` and `CommodityHead`.
+
+2. Run the scraper:
+
+```python
+from agrimarket.scraper import main
+
+# This will:
+# - Read commodity data from data/CommodityAndCommodityHeadsv2.csv
+# - Fetch data for each commodity
+# - Save results to CSV files in the data directory
+main()
+```
+
+The script will create CSV files in the `data` directory with names like `Agri_Data_{CommodityHead}_Jan_2020.csv`.
+
+## Development
+
+### Running Tests
+
+```bash
+pytest
+```
+
+### Code Quality
+
+The project uses `ruff` for linting and code formatting. To run the linter:
+
+```bash
+uvx ruff check .
+```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
 ### **Data Source:**
 
 [Agmarknet](https://agmarknet.gov.in/Default.aspx) portal is a GOI (Govt of India) portal on agricultural marketing. The Portal provides both static and dynamic information relating to agricultural marketing in India .
