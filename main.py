@@ -1,19 +1,20 @@
-import requests
-import json
 from bs4 import BeautifulSoup as bs
 import pandas as pd
-from datetime import date, timedelta
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from time import sleep
+import requests
+import time
 from urllib.parse import urlencode
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+
 
 def get_url(Commodity, CommodityHead):
     """Given a Commodity and a CommodityHead, returns the complete URL to be browsed"""
-    base_url = 'https://agmarknet.gov.in/SearchCmmMkt.aspx'
+    base_url = "https://agmarknet.gov.in/SearchCmmMkt.aspx"
     parameters = {
         "Tx_Commodity": Commodity,
         "Tx_State": "0",
@@ -31,14 +32,6 @@ def get_url(Commodity, CommodityHead):
     }
     query = urlencode(parameters)
     return "?".join([base_url, query])
-
-
-def get_soup(driver):
-    """Constructs and returns a soup using the HTML content of `url` passed"""
-
-    source = driver.page_source
-    # return the soup
-    return bs(source, "html.parser")
 
 
 def get_all_tables(soup):
@@ -80,26 +73,72 @@ def save_as_csv(soup, CommodityHead):
         rows = get_table_rows(table)
         # save table as csv file
         try:
-            with open(f"./data/Agri_Data_{CommodityHead}_Jan_2020.csv", mode='ab') as f:
-                pd.DataFrame(rows, columns=headers).to_csv(f, header=f.tell() == 0, index=False)
+            with open(f"./data/Agri_Data_{CommodityHead}_Jan_2020.csv", mode="ab") as f:
+                pd.DataFrame(rows, columns=headers).to_csv(
+                    f, header=f.tell() == 0, index=False
+                )
 
-        except ValueError as ve:
+        except ValueError:
             pass
     return
 
 
 def main():
+    """Fetches agricultural commodity data using HTTP requests and saves it as CSV files.
+
+    This function reads commodity information from a CSV file, retrieves corresponding data from a website, and saves the results. It handles errors gracefully and reports the status for each commodity.
+
+    """
+    start_time = time.time()
+
+    # read Commodity data from csv file
+    df = pd.read_csv("./data/CommodityAndCommodityHeadsv2.csv")
+    for row in df.itertuples(index=False):
+        url = get_url(row.Commodity, row.CommodityHead)
+        print(f"Fetching data for {row.CommodityHead} from {url}")
+        try:
+            response = requests.get(url)
+            response.raise_for_status()  # Raise an exception for bad status codes
+            soup = bs(response.content, "html.parser")
+            save_as_csv(soup, row.CommodityHead)
+            print(f"Successfully saved data for {row.CommodityHead}.")
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching data for {row.CommodityHead}: {e}")
+        except Exception as e:
+            print(f"An error occurred while processing {row.CommodityHead}: {e}")
+
+    end_time = time.time()
+    print(f"Total time taken: {end_time - start_time:.2f} seconds")
+
+
+def main_with_selenium():
+    """Fetches agricultural commodity data using Selenium and saves it as CSV files.
+
+    This function automates a headless Chrome browser to navigate through web pages, extract table data for each commodity, and save the results. It handles pagination and ensures all available data is collected for each commodity.
+
+    """
+    start_time = time.time()
     # service = Service(executable_path='chromedriver_win32/chromedriver')
     # driver = webdriver.Chrome(service=service)
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+    options = Options()
+    options.add_argument("--headless")
+    # Initialize the driver once before the loop
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()), options=options
+    )
+
     # read Commodity data from csv file
     df = pd.read_csv("./data/CommodityAndCommodityHeadsv2.csv")
     for row in df.itertuples(index=False):
         url = get_url(row.Commodity, row.CommodityHead)
         # driver.get('https://bit.ly/3h0JRse')
         driver.get(url)
-        driver.maximize_window()
-        sleep(10)
+        # driver.maximize_window()
+        # sleep(10)
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.TAG_NAME, "table"))
+        )
 
         # get the soup
         soup = get_soup(driver)
@@ -107,15 +146,24 @@ def main():
 
         while True:
             try:
-                driver.find_element_by_xpath("//input[contains(@alt, '>')]").click()
-                sleep(5)
+                driver.find_element(By.XPATH, "//input[contains(@alt, '>')]").click()
+                # sleep(5)
+                WebDriverWait(driver, 20).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "table"))
+                )
                 soup = get_soup(driver)
                 save_as_csv(soup, row.CommodityHead)
 
             except:
                 print("No more pages left")
                 break
-        sleep(5)
+        # sleep(5)
+
+    # Close the driver after processing all commodities
+    driver.quit()
+
+    end_time = time.time()
+    print(f"Total time taken: {end_time - start_time:.2f} seconds")
 
 
 if __name__ == "__main__":
