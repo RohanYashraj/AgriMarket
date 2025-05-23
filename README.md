@@ -6,16 +6,15 @@ A Python package for scraping agricultural commodity market data from Agmarknet 
 
 ```
 agrimarket/
-├── src/
-│   └── agrimarket/
-│       ├── __init__.py
-│       └── scraper.py
-├── tests/
-│   └── test_scraper.py
+├── agrimarket/
+│   ├── __init__.py
+│   └── scraper.py
 ├── data/
-│   └── (scraped data files)
-├── config/
+│   ├── Commodity.csv
+│   ├── Dates.csv
+│   └── CommodityAndCommodityHeads.csv
 ├── pyproject.toml
+├── uv.lock
 └── README.md
 ```
 
@@ -57,28 +56,31 @@ uv pip install -e ".[dev]"
 
 The package provides functionality to scrape agricultural commodity data from Agmarknet. Here's how to use it:
 
-1. Ensure you have a CSV file named `CommodityAndCommodityHeadsv2.csv` in the `data` directory with columns for `Commodity` and `CommodityHead`.
+1. Ensure you have a CSV file named `Commodity.csv` in the `data` directory with columns for `Commodity` and `CommodityHead`.
 
-2. Run the scraper:
+2. Ensure you have a CSV file named `Dates.csv` in the `data` directory with columns for `From` and `To` dates.
+
+3. Run the scraper:
 
 ```python
 from agrimarket.scraper import main
 
 # This will:
-# - Read commodity data from data/CommodityAndCommodityHeadsv2.csv
-# - Fetch data for each commodity
-# - Save results to CSV files in the data directory
+# - Read commodity data from data/Commodity.csv
+# - Read date ranges from data/Dates.csv
+# - Fetch data for each commodity and date range
+# - Save results to CSV files in the data/scraped_data directory
 main()
 ```
 
-The script will create CSV files in the `data` directory with names like `Agri_Data_{CommodityHead}_Jan_2020.csv`.
+The script will create CSV files in the `data/scraped_data` directory, organized in subfolders named after each commodity's `CommodityHead`. The filenames will be in the format `Agri_Data_{CommodityHead}_{date_from_formatted}_{date_to_formatted}.csv`.
 
 ## Development
 
 ### Running Tests
 
 ```bash
-pytest
+python -m pytest
 ```
 
 ### Code Quality
@@ -132,3 +134,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
   > I would advise you to play with the script only to learn and not to wreck govt servers as thousands of people rely on this data everyday
 
 Happy Learning! :metal:
+
+**Author:** Rohan Yashraj Gupta
