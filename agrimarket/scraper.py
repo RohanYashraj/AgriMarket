@@ -5,13 +5,6 @@ from urllib.parse import urlencode
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup as bs
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 
 
 def get_url(Commodity, CommodityHead, date_from, date_to):
@@ -148,81 +141,6 @@ def main():
                 print(
                     f"An error occurred while processing {commodity_row.CommodityHead} for {date_from} to {date_to}: {e}"
                 )
-
-    end_time = time.time()
-    print(f"Total time taken: {end_time - start_time:.2f} seconds")
-
-
-def main_with_selenium():
-    """Fetches agricultural commodity data using Selenium and saves it as CSV files.
-
-    This function automates a headless Chrome browser to navigate through web pages, extract table data for each commodity, and save the results. It handles pagination and ensures all available data is collected for each commodity.
-
-    """
-    start_time = time.time()
-    # service = Service(executable_path='chromedriver_win32/chromedriver')
-    # driver = webdriver.Chrome(service=service)
-    options = Options()
-    options.add_argument("--headless")
-    # Initialize the driver once before the loop
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()), options=options
-    )
-
-    # read Commodity data from csv file
-    df_commodities = pd.read_csv("./data/Commodity.csv")
-    # read Dates data from csv file
-    df_dates = pd.read_csv("./data/Dates.csv")
-
-    for date_row in df_dates.itertuples(index=False):
-        date_from = date_row.From
-        date_to = date_row.To
-        print(f"--- Fetching data for date range: {date_from} to {date_to} ---")
-
-        for commodity_row in df_commodities.itertuples(index=False):
-            url = get_url(
-                commodity_row.Commodity, commodity_row.CommodityHead, date_from, date_to
-            )
-            driver.get(url)
-            # driver.maximize_window()
-            # sleep(10)
-            try:
-                WebDriverWait(driver, 20).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "table"))
-                )
-
-                # get the soup
-                soup = get_soup(driver)
-                save_as_csv(soup, commodity_row.CommodityHead, date_from, date_to)
-
-                while True:
-                    try:
-                        driver.find_element(
-                            By.XPATH, "//input[contains(@alt, '>')]"
-                        ).click()
-                        # sleep(5)
-                        WebDriverWait(driver, 20).until(
-                            EC.presence_of_element_located((By.TAG_NAME, "table"))
-                        )
-                        soup = get_soup(driver)
-                        save_as_csv(
-                            soup, commodity_row.CommodityHead, date_from, date_to
-                        )
-
-                    except:
-                        print("No more pages left for this commodity and date range.")
-                        break
-                # sleep(5)
-                print(
-                    f"Successfully saved data for {commodity_row.CommodityHead} for {date_from} to {date_to}."
-                )
-            except Exception as e:
-                print(
-                    f"An error occurred while processing {commodity_row.CommodityHead} for {date_from} to {date_to}: {e}"
-                )
-
-    # Close the driver after processing all commodities
-    driver.quit()
 
     end_time = time.time()
     print(f"Total time taken: {end_time - start_time:.2f} seconds")
